@@ -58,6 +58,56 @@ fwrite(ciphertext, sizeof ciphertext, 1, f);
 fclose(f);
 }
 
+struct note_stuff all_my_junk[100];
+int junk_count = 0;
+
+void uncrunch_it_all() {
+FILE *f = fopen(db_path_omg, "rb");
+if(!f) return;
+unsigned char nonce[crypto_secretbox_NONCEBYTES];
+unsigned char ciphertext[sizeof(struct note_stuff) + crypto_secretbox_MACBYTES];
+while(fread(nonce, sizeof nonce, 1, f) == 1) {
+    if(fread(ciphertext, sizeof ciphertext, 1, f) != 1) break;
+    if(crypto_secretbox_open_easy((unsigned char*)&all_my_junk[junk_count], ciphertext, sizeof ciphertext, nonce, spicy_key) == 0) {
+        junk_count++;
+    }
+}
+fclose(f);
+}
+
+void read_loop_omg() {
+gib_me_key_pls();
+printf("loading junk...\n");
+uncrunch_it_all();
+if(junk_count == 0) { printf("no junk found\n"); return; }
+int cur = 0;
+struct termios old;
+set_raw_mode_pls(&old);
+while(1) {
+    printf("\033[2J\033[H");
+    printf("--- NOTED READ MODE (q to quit) ---\n");
+    for(int i=0; i<junk_count; i++) {
+        if(i == cur) printf(" >> "); else printf("    ");
+        char *type_str = (all_my_junk[i].kaboom == 2) ? "[TODO]" : (all_my_junk[i].kaboom == 1 ? "[THOUGHT]" : "[NOTE]");
+        printf("%s %s\n", type_str, all_my_junk[i].title);
+    }
+    if(junk_count > 0) {
+        printf("\n--- %s ---\n%s\n", all_my_junk[cur].title, all_my_junk[cur].body);
+    }
+    char c1;
+    read(0, &c1, 1);
+    if(c1 == 'q' || c1 == 'Q') break;
+    if(c1 == '\033') {
+        char c2, c3;
+        read(0, &c2, 1);
+        read(0, &c3, 1);
+        if(c3 == 'A' && cur > 0) cur--;
+        if(c3 == 'B' && cur < junk_count-1) cur++;
+    }
+}
+restore_mode_pls(&old);
+}
+
 void setup_db_path() {
 char *home = getenv("HOME");
 sprintf(db_path_omg, "%s/.local/share/noted", home);
@@ -128,7 +178,7 @@ return 0;
 if (strcmp(argv[1], "write") == 0) {
 menu_loop_omg();
 } else if (strcmp(argv[1], "read") == 0) {
-printf("reading soon...\n");
+read_loop_omg();
 } else {
 help_me_pls();
 }
