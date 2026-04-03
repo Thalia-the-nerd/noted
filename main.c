@@ -4,8 +4,31 @@
 #include <sodium.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <termios.h>
+#include <time.h>
+
+struct note_stuff {
+int id;
+long ts;
+char tags[64];
+int kaboom; 
+char title[128];
+char body[1024];
+};
 
 char db_path_omg[1024];
+
+void set_raw_mode_pls(struct termios *old) {
+struct termios raw;
+tcgetattr(0, old);
+raw = *old;
+raw.c_lflag &= ~(ECHO | ICANON);
+tcsetattr(0, TCSAFLUSH, &raw);
+}
+
+void restore_mode_pls(struct termios *old) {
+tcsetattr(0, TCSAFLUSH, old);
+}
 
 void setup_db_path() {
 char *home = getenv("HOME");
@@ -28,13 +51,34 @@ printf("  write  Make a new note\n");
 printf("  read   Look at your notes\n");
 }
 
+void menu_loop_omg() {
+struct termios old;
+set_raw_mode_pls(&old);
+printf("\033[2J\033[H");
+printf("--- NOTED WRITE MODE ---\n");
+printf("1. Long Note\n2. Short Thought\n3. Todo\nQ. Quit\n> ");
+char c;
+read(0, &c, 1);
+restore_mode_pls(&old);
+if(c=='q'||c=='Q') return;
+printf("\nEnter Title: ");
+char buf[128];
+fgets(buf, 128, stdin);
+buf[strcspn(buf, "\n")] = 0;
+printf("Enter Content: ");
+char body[1024];
+fgets(body, 1024, stdin);
+body[strcspn(body, "\n")] = 0;
+printf("Saving (fake for now)...\n");
+}
+
 int main(int argc, char **argv) {
 if (sodium_init() == -1) {
 return 1;
 }
 setup_db_path();
 if (argc < 2) {
-help_me_pls();
+menu_loop_omg();
 return 0;
 }
 if (strcmp(argv[1], "-v") == 0) {
@@ -46,7 +90,7 @@ help_me_pls();
 return 0;
 }
 if (strcmp(argv[1], "write") == 0) {
-printf("writing soon...\n");
+menu_loop_omg();
 } else if (strcmp(argv[1], "read") == 0) {
 printf("reading soon...\n");
 } else {
