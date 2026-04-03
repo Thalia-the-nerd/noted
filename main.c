@@ -217,6 +217,19 @@ if (strcmp(argv[1], "-h") == 0) {
 help_me_pls();
 return 0;
 }
+if (strcmp(argv[1], "--list") == 0) {
+gib_me_key_pls();
+uncrunch_it_all();
+for(int i=0; i<junk_count; i++) printf("[%d] %s\n", all_my_junk[i].id, all_my_junk[i].title);
+return 0;
+}
+if (strcmp(argv[1], "--clear") == 0) {
+printf("ARE YOU SURE??? (y/n) ");
+char c;
+scanf(" %c", &c);
+if(c=='y') unlink(db_path_omg);
+return 0;
+}
 if (strcmp(argv[1], "write") == 0) {
 menu_loop_omg();
 } else if (strcmp(argv[1], "read") == 0) {
