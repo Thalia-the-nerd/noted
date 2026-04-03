@@ -169,13 +169,26 @@ printf(" | |\\  | |__| | | | | |___| |_| |\n");
 printf(" |_| \\_|\\____/  |_| |_____|____/ \n");
 printf("\nUsage: noted [options] [command]\n");
 printf("Options:\n");
-printf("  -v       Show version (1.0.0 is the best)\n");
-printf("  -h       Show this mess\n");
-printf("  --list   Quick list of titles\n");
-printf("  --clear  WIPE EVERYTHING OMG DONT DO IT\n");
+printf("  -v, --version  Show version\n");
+printf("  -h, --help     Show this mess\n");
+printf("  -l, --list     Quick list of titles\n");
+printf("  -c, --clear    WIPE EVERYTHING\n");
+printf("  -e, --export   Dump all to noted_dump.txt\n");
 printf("Commands:\n");
-printf("  write    Make a new note (menu based)\n");
-printf("  read     Look at your notes (TUI magic)\n");
+printf("  write          Make a new note\n");
+printf("  read           Look at your notes\n");
+}
+
+void export_all_the_things() {
+gib_me_key_pls();
+uncrunch_it_all();
+FILE *f = fopen("noted_dump.txt", "w");
+if(!f) return;
+for(int i=0; i<junk_count; i++) {
+    fprintf(f, "Title: %s\nBody: %s\n---\n", all_my_junk[i].title, all_my_junk[i].body);
+}
+fclose(f);
+printf("Dumped %d notes to noted_dump.txt\n", junk_count);
 }
 
 void menu_loop_omg() {
@@ -217,25 +230,29 @@ if (argc < 2) {
 menu_loop_omg();
 return 0;
 }
-if (strcmp(argv[1], "-v") == 0) {
+if (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--version") == 0) {
 do_the_thing_version();
 return 0;
 }
-if (strcmp(argv[1], "-h") == 0) {
+if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
 help_me_pls();
 return 0;
 }
-if (strcmp(argv[1], "--list") == 0) {
+if (strcmp(argv[1], "-l") == 0 || strcmp(argv[1], "--list") == 0) {
 gib_me_key_pls();
 uncrunch_it_all();
 for(int i=0; i<junk_count; i++) printf("[%d] %s\n", all_my_junk[i].id, all_my_junk[i].title);
 return 0;
 }
-if (strcmp(argv[1], "--clear") == 0) {
+if (strcmp(argv[1], "-c") == 0 || strcmp(argv[1], "--clear") == 0) {
 printf("ARE YOU SURE??? (y/n) ");
 char c;
 scanf(" %c", &c);
 if(c=='y') unlink(db_path_omg);
+return 0;
+}
+if (strcmp(argv[1], "-e") == 0 || strcmp(argv[1], "--export") == 0) {
+export_all_the_things();
 return 0;
 }
 if (strcmp(argv[1], "write") == 0) {
