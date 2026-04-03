@@ -1,0 +1,13 @@
+pkgbase = noted
+	pkgdesc = A terminal note-taking app with a built-in TUI
+	pkgver = 1.0.0
+	pkgrel = 1
+	arch = x86_64
+	license = MIT
+	depends = libsodium
+	source = main.c
+	source = Makefile
+	md5sums = SKIP
+	md5sums = SKIP
+
+pkgname = noted
