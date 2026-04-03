@@ -5,15 +5,15 @@ pkgdesc="A terminal note-taking app with a built-in TUI"
 arch=('x86_64')
 license=('MIT')
 depends=('libsodium')
-source=("main.c" "Makefile")
-md5sums=('SKIP' 'SKIP')
+source=("https://github.com/Thalia-the-nerd/noted/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
 
 build() {
-  cd "$srcdir"
+  cd "$pkgname-$pkgver"
   make
 }
 
 package() {
-  cd "$srcdir"
+  cd "$pkgname-$pkgver"
   install -Dm755 noted "$pkgdir/usr/bin/noted"
 }
