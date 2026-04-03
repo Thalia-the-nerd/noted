@@ -162,13 +162,20 @@ printf("noted version 1.0.0\n");
 }
 
 void help_me_pls() {
-printf("Usage: noted [options] [command]\n");
+printf("  _   _  ____  _____ _____ ____  \n");
+printf(" | \\ | |/ __ \\|_   _| ____|  _ \\ \n");
+printf(" |  \\| | |  | | | | |  _| | | | |\n");
+printf(" | |\\  | |__| | | | | |___| |_| |\n");
+printf(" |_| \\_|\\____/  |_| |_____|____/ \n");
+printf("\nUsage: noted [options] [command]\n");
 printf("Options:\n");
-printf("  -v    Show version\n");
-printf("  -h    Show this mess\n");
+printf("  -v       Show version (1.0.0 is the best)\n");
+printf("  -h       Show this mess\n");
+printf("  --list   Quick list of titles\n");
+printf("  --clear  WIPE EVERYTHING OMG DONT DO IT\n");
 printf("Commands:\n");
-printf("  write  Make a new note\n");
-printf("  read   Look at your notes\n");
+printf("  write    Make a new note (menu based)\n");
+printf("  read     Look at your notes (TUI magic)\n");
 }
 
 void menu_loop_omg() {
@@ -234,8 +241,6 @@ if (strcmp(argv[1], "write") == 0) {
 menu_loop_omg();
 } else if (strcmp(argv[1], "read") == 0) {
 read_loop_omg();
-} else {
-help_me_pls();
-}
+} else { help_me_pls(); }
 return 0;
 }
