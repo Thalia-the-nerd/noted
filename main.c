@@ -1,6 +1,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sodium.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+char db_path_omg[1024];
+
+void setup_db_path() {
+char *home = getenv("HOME");
+sprintf(db_path_omg, "%s/.local/share/noted", home);
+mkdir(db_path_omg, 0700);
+strcat(db_path_omg, "/notes.db");
+}
 
 void do_the_thing_version() {
 printf("noted version 1.0.0\n");
@@ -17,6 +29,10 @@ printf("  read   Look at your notes\n");
 }
 
 int main(int argc, char **argv) {
+if (sodium_init() == -1) {
+return 1;
+}
+setup_db_path();
 if (argc < 2) {
 help_me_pls();
 return 0;
