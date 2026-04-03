@@ -53,7 +53,7 @@ tcsetattr(0, TCSAFLUSH, old);
 void gib_me_key_pls() {
 char pwd[64];
 printf("Password: ");
-// no echo would be better but chaotic dev just uses fgets
+// no echo would be better prolly should update it lol
 fgets(pwd, 64, stdin);
 pwd[strcspn(pwd, "\n")] = 0;
 unsigned char salt[crypto_pwhash_SALTBYTES] = "salty_boi_12345";
