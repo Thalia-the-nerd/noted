@@ -14,7 +14,23 @@ char tags[64];
 int kaboom; 
 char title[128];
 char body[1024];
+int hidden;
 };
+
+void flush_junk_to_disk_pls() {
+FILE *f = fopen(db_path_omg, "wb");
+if(!f) return;
+for(int i=0; i<100; i++) {
+    if(i >= junk_count) break;
+    unsigned char nonce[crypto_secretbox_NONCEBYTES];
+    randombytes_buf(nonce, sizeof nonce);
+    unsigned char ciphertext[sizeof(struct note_stuff) + crypto_secretbox_MACBYTES];
+    crypto_secretbox_easy(ciphertext, (unsigned char*)&all_my_junk[i], sizeof(struct note_stuff), nonce, spicy_key);
+    fwrite(nonce, sizeof nonce, 1, f);
+    fwrite(ciphertext, sizeof ciphertext, 1, f);
+}
+fclose(f);
+}
 
 char db_path_omg[1024];
 
@@ -87,19 +103,45 @@ while(1) {
     printf("\033[2J\033[H");
     printf("--- NOTED READ MODE (q to quit) ---\n");
     for(int i=0; i<junk_count; i++) {
+        if(all_my_junk[i].hidden) continue;
         if(i == cur) printf(" >> "); else printf("    ");
         char *type_str = (all_my_junk[i].kaboom == 2) ? "[TODO]" : (all_my_junk[i].kaboom == 1 ? "[THOUGHT]" : "[NOTE]");
         printf("%s %s\n", type_str, all_my_junk[i].title);
     }
-    if(junk_count > 0) {
+    if(junk_count > 0 && !all_my_junk[cur].hidden) {
         printf("\n--- %s ---\n%s\n", all_my_junk[cur].title, all_my_junk[cur].body);
     }
     char c1;
     read(0, &c1, 1);
     if(c1 == 'q' || c1 == 'Q') break;
+    if(c1 == ' ') {
+        if(all_my_junk[cur].kaboom == 2) {
+            all_my_junk[cur].kaboom = 0; // complete? lol
+            flush_junk_to_disk_pls();
+        }
+    }
+    if(c1 == '/') {
+        restore_mode_pls(&old);
+        printf("\nSearch: ");
+        char q[64];
+        fgets(q, 64, stdin);
+        q[strcspn(q, "\n")] = 0;
+        for(int i=0; i<junk_count; i++) {
+            if(strlen(q) == 0) { all_my_junk[i].hidden = 0; continue; }
+            if(strstr(all_my_junk[i].title, q) || strstr(all_my_junk[i].body, q))
+                all_my_junk[i].hidden = 0;
+            else
+                all_my_junk[i].hidden = 1;
+        }
+        set_raw_mode_pls(&old);
+        cur = 0;
+    }
     if(c1 == '\033') {
         char c2, c3;
-        read(0, &c2, 1);
+        if(read(0, &c2, 1) == 0) { // ESC alone
+            for(int i=0; i<junk_count; i++) all_my_junk[i].hidden = 0;
+            continue;
+        }
         read(0, &c3, 1);
         if(c3 == 'A' && cur > 0) cur--;
         if(c3 == 'B' && cur < junk_count-1) cur++;
