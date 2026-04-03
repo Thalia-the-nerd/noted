@@ -16,3 +16,9 @@ i guess you have two main things. `write` and `read`.
 - `-c, --clear`: wipe the whole database. i was bored of my old notes so i made this.
 - `-e, --export`: dump it all to `noted_dump.txt`. 
 - `-logo`: if you really want to see that ascii art over and over.
+
+## where the data goes
+it lives in `~/.local/share/noted/notes.db`. if it's not there, it'll make it. if you delete it, it's gone for good. i was too bored to make a backup command. maybe next time. probably not.
+
+## license
+mit or something. don't sue me, i'm just bored. i guess take the code as it is.
