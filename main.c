@@ -7,6 +7,8 @@
 #include <termios.h>
 #include <time.h>
 
+char db_path_omg[1024];
+unsigned char spicy_key[crypto_secretbox_KEYBYTES];
 struct note_stuff {
 int id;
 long ts;
@@ -16,6 +18,8 @@ char title[128];
 char body[1024];
 int hidden;
 };
+struct note_stuff all_my_junk[100];
+int junk_count = 0;
 
 void flush_junk_to_disk_pls() {
 FILE *f = fopen(db_path_omg, "wb");
@@ -32,7 +36,6 @@ for(int i=0; i<100; i++) {
 fclose(f);
 }
 
-char db_path_omg[1024];
 
 void set_raw_mode_pls(struct termios *old) {
 struct termios raw;
@@ -46,7 +49,6 @@ void restore_mode_pls(struct termios *old) {
 tcsetattr(0, TCSAFLUSH, old);
 }
 
-unsigned char spicy_key[crypto_secretbox_KEYBYTES];
 
 void gib_me_key_pls() {
 char pwd[64];
@@ -74,8 +76,6 @@ fwrite(ciphertext, sizeof ciphertext, 1, f);
 fclose(f);
 }
 
-struct note_stuff all_my_junk[100];
-int junk_count = 0;
 
 void uncrunch_it_all() {
 FILE *f = fopen(db_path_omg, "rb");
@@ -211,6 +211,7 @@ int main(int argc, char **argv) {
 if (sodium_init() == -1) {
 return 1;
 }
+srand(time(NULL));
 setup_db_path();
 if (argc < 2) {
 menu_loop_omg();
