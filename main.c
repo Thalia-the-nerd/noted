@@ -30,6 +30,34 @@ void restore_mode_pls(struct termios *old) {
 tcsetattr(0, TCSAFLUSH, old);
 }
 
+unsigned char spicy_key[crypto_secretbox_KEYBYTES];
+
+void gib_me_key_pls() {
+char pwd[64];
+printf("Password: ");
+// no echo would be better but chaotic dev just uses fgets
+fgets(pwd, 64, stdin);
+pwd[strcspn(pwd, "\n")] = 0;
+unsigned char salt[crypto_pwhash_SALTBYTES] = "salty_boi_12345";
+if (crypto_pwhash(spicy_key, sizeof spicy_key, pwd, strlen(pwd), salt, 
+                  crypto_pwhash_OPSLIMIT_INTERACTIVE, crypto_pwhash_MEMLIMIT_INTERACTIVE, 
+                  crypto_pwhash_ALG_ARGON2ID13) != 0) {
+    exit(1);
+}
+}
+
+void crunch_it(struct note_stuff *n) {
+unsigned char nonce[crypto_secretbox_NONCEBYTES];
+randombytes_buf(nonce, sizeof nonce);
+unsigned char ciphertext[sizeof(struct note_stuff) + crypto_secretbox_MACBYTES];
+crypto_secretbox_easy(ciphertext, (unsigned char*)n, sizeof(struct note_stuff), nonce, spicy_key);
+FILE *f = fopen(db_path_omg, "ab");
+if(!f) return;
+fwrite(nonce, sizeof nonce, 1, f);
+fwrite(ciphertext, sizeof ciphertext, 1, f);
+fclose(f);
+}
+
 void setup_db_path() {
 char *home = getenv("HOME");
 sprintf(db_path_omg, "%s/.local/share/noted", home);
@@ -69,7 +97,15 @@ printf("Enter Content: ");
 char body[1024];
 fgets(body, 1024, stdin);
 body[strcspn(body, "\n")] = 0;
-printf("Saving (fake for now)...\n");
+struct note_stuff n;
+n.id = rand() % 10000;
+n.ts = time(NULL);
+n.kaboom = (c == '3') ? 2 : (c == '2' ? 1 : 0);
+strcpy(n.title, buf);
+strcpy(n.body, body);
+gib_me_key_pls();
+crunch_it(&n);
+printf("Saved to %s\n", db_path_omg);
 }
 
 int main(int argc, char **argv) {
