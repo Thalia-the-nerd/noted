@@ -9,13 +9,16 @@
 
 char db_path_omg[1024];
 unsigned char spicy_key[crypto_secretbox_KEYBYTES];
-struct note_stuff {
+struct note_disk {
 int id;
 long ts;
 char tags[64];
-int kaboom; 
+int kaboom;
 char title[128];
 char body[1024];
+};
+struct note_stuff {
+struct note_disk d;
 int hidden;
 };
 struct note_stuff all_my_junk[100];
@@ -24,12 +27,11 @@ int junk_count = 0;
 void flush_junk_to_disk_pls() {
 FILE *f = fopen(db_path_omg, "wb");
 if(!f) return;
-for(int i=0; i<100; i++) {
-    if(i >= junk_count) break;
+for(int i=0; i<junk_count; i++) {
     unsigned char nonce[crypto_secretbox_NONCEBYTES];
     randombytes_buf(nonce, sizeof nonce);
-    unsigned char ciphertext[sizeof(struct note_stuff) + crypto_secretbox_MACBYTES];
-    crypto_secretbox_easy(ciphertext, (unsigned char*)&all_my_junk[i], sizeof(struct note_stuff), nonce, spicy_key);
+    unsigned char ciphertext[sizeof(struct note_disk) + crypto_secretbox_MACBYTES];
+    crypto_secretbox_easy(ciphertext, (unsigned char*)&all_my_junk[i].d, sizeof(struct note_disk), nonce, spicy_key);
     fwrite(nonce, sizeof nonce, 1, f);
     fwrite(ciphertext, sizeof ciphertext, 1, f);
 }
@@ -67,8 +69,8 @@ if (crypto_pwhash(spicy_key, sizeof spicy_key, pwd, strlen(pwd), salt,
 void crunch_it(struct note_stuff *n) {
 unsigned char nonce[crypto_secretbox_NONCEBYTES];
 randombytes_buf(nonce, sizeof nonce);
-unsigned char ciphertext[sizeof(struct note_stuff) + crypto_secretbox_MACBYTES];
-crypto_secretbox_easy(ciphertext, (unsigned char*)n, sizeof(struct note_stuff), nonce, spicy_key);
+unsigned char ciphertext[sizeof(struct note_disk) + crypto_secretbox_MACBYTES];
+crypto_secretbox_easy(ciphertext, (unsigned char*)&n->d, sizeof(struct note_disk), nonce, spicy_key);
 FILE *f = fopen(db_path_omg, "ab");
 if(!f) return;
 fwrite(nonce, sizeof nonce, 1, f);
@@ -81,10 +83,13 @@ void uncrunch_it_all() {
 FILE *f = fopen(db_path_omg, "rb");
 if(!f) return;
 unsigned char nonce[crypto_secretbox_NONCEBYTES];
-unsigned char ciphertext[sizeof(struct note_stuff) + crypto_secretbox_MACBYTES];
+unsigned char ciphertext[sizeof(struct note_disk) + crypto_secretbox_MACBYTES];
 while(fread(nonce, sizeof nonce, 1, f) == 1) {
     if(fread(ciphertext, sizeof ciphertext, 1, f) != 1) break;
-    if(crypto_secretbox_open_easy((unsigned char*)&all_my_junk[junk_count], ciphertext, sizeof ciphertext, nonce, spicy_key) == 0) {
+    struct note_disk tmp;
+    if(crypto_secretbox_open_easy((unsigned char*)&tmp, ciphertext, sizeof ciphertext, nonce, spicy_key) == 0) {
+        all_my_junk[junk_count].d = tmp;
+        all_my_junk[junk_count].hidden = 0;
         junk_count++;
     }
 }
@@ -105,18 +110,18 @@ while(1) {
     for(int i=0; i<junk_count; i++) {
         if(all_my_junk[i].hidden) continue;
         if(i == cur) printf(" >> "); else printf("    ");
-        char *type_str = (all_my_junk[i].kaboom == 2) ? "[TODO]" : (all_my_junk[i].kaboom == 1 ? "[THOUGHT]" : "[NOTE]");
-        printf("%s %s\n", type_str, all_my_junk[i].title);
+        char *type_str = (all_my_junk[i].d.kaboom == 2) ? "[TODO]" : (all_my_junk[i].d.kaboom == 1 ? "[THOUGHT]" : "[NOTE]");
+        printf("%s %s\n", type_str, all_my_junk[i].d.title);
     }
     if(junk_count > 0 && !all_my_junk[cur].hidden) {
-        printf("\n--- %s ---\n%s\n", all_my_junk[cur].title, all_my_junk[cur].body);
+        printf("\n--- %s ---\n%s\n", all_my_junk[cur].d.title, all_my_junk[cur].d.body);
     }
     char c1;
     read(0, &c1, 1);
     if(c1 == 'q' || c1 == 'Q') break;
     if(c1 == ' ') {
-        if(all_my_junk[cur].kaboom == 2) {
-            all_my_junk[cur].kaboom = 0; // complete? lol
+        if(all_my_junk[cur].d.kaboom == 2) {
+            all_my_junk[cur].d.kaboom = 0;
             flush_junk_to_disk_pls();
         }
     }
@@ -128,7 +133,7 @@ while(1) {
         q[strcspn(q, "\n")] = 0;
         for(int i=0; i<junk_count; i++) {
             if(strlen(q) == 0) { all_my_junk[i].hidden = 0; continue; }
-            if(strstr(all_my_junk[i].title, q) || strstr(all_my_junk[i].body, q))
+            if(strstr(all_my_junk[i].d.title, q) || strstr(all_my_junk[i].d.body, q))
                 all_my_junk[i].hidden = 0;
             else
                 all_my_junk[i].hidden = 1;
@@ -185,7 +190,7 @@ uncrunch_it_all();
 FILE *f = fopen("noted_dump.txt", "w");
 if(!f) return;
 for(int i=0; i<junk_count; i++) {
-    fprintf(f, "Title: %s\nBody: %s\n---\n", all_my_junk[i].title, all_my_junk[i].body);
+    fprintf(f, "Title: %s\nBody: %s\n---\n", all_my_junk[i].d.title, all_my_junk[i].d.body);
 }
 fclose(f);
 printf("Dumped %d notes to noted_dump.txt\n", junk_count);
@@ -210,11 +215,12 @@ char body[1024];
 fgets(body, 1024, stdin);
 body[strcspn(body, "\n")] = 0;
 struct note_stuff n;
-n.id = rand() % 10000;
-n.ts = time(NULL);
-n.kaboom = (c == '3') ? 2 : (c == '2' ? 1 : 0);
-strcpy(n.title, buf);
-strcpy(n.body, body);
+n.d.id = rand() % 10000;
+n.d.ts = time(NULL);
+n.d.kaboom = (c == '3') ? 2 : (c == '2' ? 1 : 0);
+n.hidden = 0;
+strncpy(n.d.title, buf, 127);
+strncpy(n.d.body, body, 1023);
 gib_me_key_pls();
 crunch_it(&n);
 printf("Saved to %s\n", db_path_omg);
@@ -241,7 +247,7 @@ return 0;
 if (strcmp(argv[1], "-l") == 0 || strcmp(argv[1], "--list") == 0) {
 gib_me_key_pls();
 uncrunch_it_all();
-for(int i=0; i<junk_count; i++) printf("[%d] %s\n", all_my_junk[i].id, all_my_junk[i].title);
+for(int i=0; i<junk_count; i++) printf("[%d] %s\n", all_my_junk[i].d.id, all_my_junk[i].d.title);
 return 0;
 }
 if (strcmp(argv[1], "-c") == 0 || strcmp(argv[1], "--clear") == 0) {
